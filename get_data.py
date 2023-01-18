@@ -19,7 +19,7 @@ def_id = "spartacus-v1-1d-1km?"
 def_parameters = ["RR", "Tn", "Tx"]
 def_start_date = "1961-01-01"
 def_start_time = "T00:00"
-def_end_date = str(date.today()-timedelta(days=2))
+def_end_date = "2022-12-31"
 def_end_time = "T00:00"
 def_coordinates = [["48.032695", "14.966223"]]
 def_format = "csv"
@@ -119,9 +119,14 @@ def response_to_dataframe(res_content):
 
 def get_data(req_url):
     res = req_data(req_url)
-    content = res.content
-    df = response_to_dataframe(content)
-    return df
+    if res.status_code == 200:
+        content = res.content
+        df = response_to_dataframe(content)
+        return df
+    else:
+        print(f'An error occured with status code {res.status_code}.')
+        print(res.content)
+        return pd.DataFrame()
 
 # req_url = build_api_call(coordinates=coordinates, start_date=start_date)
 # data = get_data(req_url)

@@ -18,7 +18,7 @@ import numpy as np
 
 def transform_spartacus_daily(df):
     df['Doy'] = df['time'].dt.day_of_year
-    df['TAir'] = df[['Tn [degree_Celsius]', 'Tx [degree_Celsius]']].mean(axis=1) # NaNs are ignored
+    df['TAir'] = df[['Tn [degree_Celsius]', 'Tx [degree_Celsius]']].mean(axis=1)
     df = df[['Doy','RR [kg m-2]','TAir','lat','lon']].copy()
     df.rename(columns = {'RR [kg m-2]':'Precip'}, inplace = True)
     return df

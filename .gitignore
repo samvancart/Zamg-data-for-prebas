@@ -5,8 +5,7 @@ code.txt
 start-vs-code.bat
 
 #test_data
-data/spartacus-daily/
-test.csv
+data/
 
 
 # Editor temporary/working/backup files #

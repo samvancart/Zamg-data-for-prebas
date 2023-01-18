@@ -12,6 +12,12 @@ import get_data as gd
 
 def main():
     start_date = str(date.today()-timedelta(days=20))
+    # start_date = "2022-12-32"
+    end_date = str(date.today()-timedelta(days=2))
+    end_time_inca = "T23:00"
+    id_inca = "inca-v1-1h-1km?"
+    parameters_inca = ["RH2M", "T2M"]
+
     coordinates = [
         [
             "48.032695",
@@ -22,24 +28,34 @@ def main():
             "13.13215",
         ]
     ]
-    # req_url = gd.build_api_call(coordinates=coordinates, start_date=start_date)
-    # df = gd.get_data(req_url)
-    # prebas_df = tr.transform_spartacus_daily(df)
-    # prebas_df.to_csv("data/test.csv")
-    file = "data/test.csv"
+    coordinates_bad = [        
+        [
+            "52.032695",
+            "14.966223",
+        ]
+    ]
+    # req_url_inca = gd.build_api_call(coordinates=coordinates, start_date=start_date, end_date=end_date,
+    #     id=id_inca, parameters=parameters_inca, end_time=end_time_inca)
+    # req_url_sparta = gd.build_api_call(coordinates=coordinates, start_date=start_date, end_date=end_date)
+
+    # df = gd.get_data(req_url_inca)
+    # if not df.empty:
+    #     df.dropna(inplace=True)
+    #     print(df)
+    #     df.to_csv("data/from_inca_test.csv", index=False)
+    # else:
+    #     print("Couldn't process empty dataframe.")
+
+    file = "data/from_inca_test.csv"
     df = pd.read_csv(file, parse_dates=['time'])
+    # df = df.resample('d', on='time').mean().dropna(how='all')
+    # df = df.set_index('time').groupby(pd.Grouper(freq='d')).mean().dropna(how='all')
+    df2=df.groupby(df["time"].dt.hour)["RH2M [percent]"].mean()
+    print(df2)
+    df.to_csv("data/to_inca_test.csv")
 
-    # df.fillna("NaN", inplace=True)
-    # df.to_csv("data/test.csv")
-
-    print(tr.transform_spartacus_daily(df))
-
-    from_date = date(1961, 1, 1)
-    to_date = date(2011, 3, 14)
-    total_days = (to_date-from_date).days
-    print(from_date)
-    print(total_days)
-
+   
+    
 
 if __name__ == '__main__':
     main()
