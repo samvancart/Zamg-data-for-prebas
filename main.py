@@ -48,13 +48,19 @@ def main():
 
     file = "data/from_inca_test.csv"
     df = pd.read_csv(file, parse_dates=['time'])
-    # df = df.resample('d', on='time').mean().dropna(how='all')
-    # df = df.set_index('time').groupby(pd.Grouper(freq='d')).mean().dropna(how='all')
-    df2=df.groupby(df["time"].dt.hour)["RH2M [percent]"].mean()
-    print(df2)
+
+    grouped = df.groupby(["lat", "lon"],as_index=False)
+    df = grouped.resample('d', on='time').mean().dropna(how='all')
+    df.reset_index(level=[0],inplace=True)
+    df.drop(["level_0"], axis=1, inplace=True)
+
+    print(df)
     df.to_csv("data/to_inca_test.csv")
 
-   
+    sparta = "data/from_sparta_test.csv"
+    df = pd.read_csv(sparta, parse_dates=['time'])
+    df = tr.transform_spartacus_daily(df)
+    df.to_csv("data/to_sparta_test.csv")
     
 
 if __name__ == '__main__':
