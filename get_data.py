@@ -75,7 +75,7 @@ def build_api_call(
             coordinates (list list string): list of coordinates as [['lat','lon'],['lat','lon']]
             format (string): format of returned data (csv, geojson, netcdf)
         Returns:
-            built call (string): url containing requested parameters 
+            tuple: url containing requested parameters and the id (name of dataset) 
     
     """
     
@@ -89,7 +89,7 @@ def build_api_call(
     end = "end=" + end_date + end_time
     api_call_list = [url, params, start, end, lat_lons, format_type]
     api_call = "&".join(api_call_list)
-    return api_call
+    return (api_call, id)
 
 
 url = "https://dataset.api.hub.zamg.ac.at/v1/timeseries/historical/"
@@ -117,16 +117,36 @@ def response_to_dataframe(res_content):
     df = pd.read_csv(io.StringIO(res_content.decode('utf-8')), parse_dates=['time'])
     return df
 
-def get_data(req_url):
-    res = req_data(req_url)
+def get_data(req_tuple):
+    """ Gets content from response object and creates dataframe
+
+        Parameters:
+            req_tuple (tuple): A tuple containing the url for the request and the id of the request.
+
+        Returns:
+            Dataframe (Pandas DataFrame): Response content as dataframe. Empty dataframe if no content in response. 
+    
+    """
+
+    print(f'Fetching data from {req_tuple[1]}...')
+    res = req_data(req_tuple[0])
     if res.status_code == 200:
         content = res.content
         df = response_to_dataframe(content)
+        print("Fetched data succesfully.")
         return df
     else:
         print(f'An error occured with status code {res.status_code}.')
         print(res.content)
         return pd.DataFrame()
+
+def df_empty(df):
+    if not df.empty:
+        print(df)
+        return False
+    else:
+        print("Couldn't process empty dataframe.")
+        return True
 
 # req_url = build_api_call(coordinates=coordinates, start_date=start_date)
 # data = get_data(req_url)
