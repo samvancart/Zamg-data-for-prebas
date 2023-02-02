@@ -8,6 +8,7 @@ import io
 
 import transform_csv as tr
 import get_data as gd
+from clipick import clipick_forPython3 as cl
 
 
 def get_by_coordinates(coordinates, req_sparta, req_inca):
@@ -85,17 +86,27 @@ def main():
     # req_inca = gd.build_api_call(start_date=start_date_inca, end_date=end_date_inca,
     #     id=id_inca, parameters=parameters_inca, end_time=end_time_inca)
 
-    from_file = "data/from_inca_test.csv"
-    df_inca = pd.read_csv(from_file, parse_dates=['time']).fillna(np.nan)
-    from_file = "data/from_sparta_test.csv"
-    df_sparta = pd.read_csv(from_file, parse_dates=['time']).fillna(np.nan)
+    # from_file = "data/from_inca_test.csv"
+    # df_inca = pd.read_csv(from_file, parse_dates=['time']).fillna(np.nan)
+    # from_file = "data/from_sparta_test.csv"
+    # df_sparta = pd.read_csv(from_file, parse_dates=['time']).fillna(np.nan)
 
-    df_inca = tr.transform_inca_hourly(df_inca)
+    # df_inca = tr.transform_inca_hourly(df_inca)
 
-    df = pd.merge_ordered(df_sparta, df_inca, on="time").fillna("NaN")
-    to_file = (f'data/combined_means_and_sums.csv')
-    print(df)
-    df.to_csv(to_file, index=False)
+    # df = pd.merge_ordered(df_sparta, df_inca, on="time").fillna("NaN")
+    # to_file = (f'data/combined_means_and_sums.csv')
+    # print(df)
+    # df.to_csv(to_file, index=False)
+
+    cl.getWeatherData(Latitude=48.032695, Longitude=14.966223, StartYear=1970, EndMonth=12, EndYear=2022)
+
+    from_file = "clipick/outputs/ClipickExportedData_48.032695_14.966223.csv"
+    df_clipick = pd.read_csv(from_file)
+    df_clipick = tr.clipick_index_to_datetime(df_clipick)
+    df_clipick = tr.transform_clipick(df_clipick)
+    print(df_clipick)
+    to_file = ("clipick/outputs/to_clipick.csv")
+    df_clipick.to_csv(to_file, index=False)
 
 
 

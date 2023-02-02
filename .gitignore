@@ -6,7 +6,7 @@ start-vs-code.bat
 
 #test_data
 data/
-
+clipick/outputs/
 
 # Editor temporary/working/backup files #
 #########################################

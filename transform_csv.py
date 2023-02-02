@@ -61,6 +61,13 @@ def calculate_vpd(row):
     vpd = svp * (1-(rh/100)) / 1000
     return vpd
 
+def calculate_vpd_clipick(row):
+    tair = row['TAir']
+    rh = row['RH']
+    svp = 610.7 * 10**(7.5*tair/(237.3+tair))
+    vpd = svp * (1-(rh/100)) / 1000
+    return vpd
+
 def add_vpd(df):
     df['VPD [kPA]'] = df.apply(calculate_vpd,axis=1)
     return df
@@ -69,3 +76,27 @@ def vpd(tair,rh):
     svp = 610.7 * 10**(7.5*tair/(237.3+tair))
     vpd = svp * (1-(rh/100)) / 1000
     return vpd
+
+def clipick_index_to_datetime(df):
+    df.index = pd.to_datetime(df[['Day','Month','Year']])
+    df.drop(columns=['Day','Month','Year'], inplace=True)
+    return df
+
+def calculate_par(row):
+    rss = row['rss']
+    par = rss *0.44*4.56
+    return par
+
+def add_value(df,column_name,function):
+    df[column_name] = df.apply(function, axis=1)
+    return df
+
+
+def transform_clipick(df):
+    df['TAir'] = df[['tasmax', 'tasmin']].mean(axis=1)
+    df['RH'] = df[['hursmax', 'hursmin']].mean(axis=1)
+    df = add_value(df, 'PAR', calculate_par)
+    df = add_value (df, 'VPD', calculate_vpd_clipick)
+    df = df.rename(columns={"pr": "Precip"})
+    df = df[['TAir', 'RH', 'PAR', 'VPD', 'Precip']]
+    return df
