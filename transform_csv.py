@@ -3,17 +3,21 @@ import pandas as pd
 import numpy as np
 
 def transform_spartacus_daily(df):
+    df.index = df['time']
     df['Doy'] = df['time'].dt.day_of_year
     df['TAir'] = df[['Tn [degree_Celsius]', 'Tx [degree_Celsius]']].mean(axis=1)
     df = df[['Doy','RR [kg m-2]','TAir','lat','lon']].copy()
-    df.rename(columns = {'RR [kg m-2]':'Precip'}, inplace = True)
+    df = df.rename(columns = {'RR [kg m-2]':'Precip'})
     return df
 
 def transform_inca_hourly(df):
     df = calculate_daily_means_and_sums_from_hourly(df)
-    df = add_vpd(df)
+    df = add_value(df, 'VPD', calculate_vpd)
     df = lat_lon_to_end(df)
-    df = df.rename(columns={"RR [kg m-2]": "RRSUM [kg m-2]"})
+    # df = df.rename(columns={"RR [kg m-2]": "RRSUM [kg m-2]"})
+    df = df.rename(columns={"RR [kg m-2]": "Precip"})
+    df = df.rename(columns={"T2M [degree_Celsius]": "TAir"})
+    df = df.rename(columns={"RH2M [percent]": "RH"})
     return df
 
 def write_df_to_csv(df, file, index=True):
@@ -79,6 +83,7 @@ def vpd(tair,rh):
 
 def clipick_index_to_datetime(df):
     df.index = pd.to_datetime(df[['Day','Month','Year']])
+    df.index.name = 'time'
     df.drop(columns=['Day','Month','Year'], inplace=True)
     return df
 
@@ -99,4 +104,5 @@ def transform_clipick(df):
     df = add_value (df, 'VPD', calculate_vpd_clipick)
     df = df.rename(columns={"pr": "Precip"})
     df = df[['TAir', 'RH', 'PAR', 'VPD', 'Precip']]
+    print(df.index)
     return df
