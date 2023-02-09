@@ -98,11 +98,28 @@ def add_value(df,column_name,function):
 
 
 def transform_clipick(df):
+    df = df.astype(float)
     df['TAir'] = df[['tasmax', 'tasmin']].mean(axis=1)
     df['RH'] = df[['hursmax', 'hursmin']].mean(axis=1)
     df = add_value(df, 'PAR', calculate_par)
     df = add_value (df, 'VPD', calculate_vpd_clipick)
     df = df.rename(columns={"pr": "Precip"})
     df = df[['TAir', 'RH', 'PAR', 'VPD', 'Precip']]
-    print(df.index)
+    return df
+
+def transform_csv_to_plottable(df_name, column_name, from_file):
+    df = pd.read_csv(from_file, parse_dates=['time'])
+    df = df[['time', column_name]].copy()
+    df = df.rename(columns = {column_name:f'{column_name} {df_name}'})
+    df['time'] = df['time'].dt.date
+    return df
+
+def transform_df_to_plottable(df, df_name, column_name):
+    df = df[['time', column_name]].copy()
+    df = df.rename(columns = {column_name:f'{column_name} {df_name}'})
+    df['time'] = df['time'].dt.date
+    return df
+
+def merge_dfs(df1,df2):
+    df = pd.merge_ordered(df1, df2, on="time").fillna(np.nan)
     return df

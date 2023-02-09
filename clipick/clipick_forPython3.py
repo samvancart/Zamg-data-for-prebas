@@ -7,6 +7,9 @@ import urllib.request # import urllib2 if using Python 2
 import urllib.parse
 import time
 
+import pandas as pd
+import numpy as np
+
 # test longitude 8.385980, test latitude 48.255170
 def getWeatherData(Longitude, Latitude, StartYear = 1951, StartMonth = 1, StartDay = 1, EndYear = 2100, EndMonth = 12, EndDay = 31):
     IPCCAssessmentReport = 4 # either 4 or 5
@@ -51,8 +54,8 @@ def getWeatherData(Longitude, Latitude, StartYear = 1951, StartMonth = 1, StartD
  
   #the file to export the output:
     # outFileName   = 'Clipick/outputs/ClipickExportedData.csv' # tip you can build the name of the file to be according to the dates extracted
-    outFileName   = f'clipick/outputs/ClipickExportedData_{Latitude}_{Longitude}.csv'
-    outFileHandle = open(outFileName, 'w')
+    # outFileName   = f'clipick/outputs/ClipickExportedData_{Latitude}_{Longitude}.csv'
+    # outFileHandle = open(outFileName, 'w')
  
     start_time = time.time() # this is facultative, just to calculate timing of retrieval
  
@@ -88,18 +91,25 @@ def getWeatherData(Longitude, Latitude, StartYear = 1951, StartMonth = 1, StartD
    
       
       # WRITE THE RESULTS IN THE FILE AND CLOSE IT
-    print ("Output is being written in ", outFileName)
-    for i in result:
-        outFileHandle.write(",".join(i) + "\n")
-    outFileHandle.flush()
-    outFileHandle.close()
+    # print ("Output is being written in ", outFileName)
+    # for i in result:
+    #     outFileHandle.write(",".join(i) + "\n")
+    # outFileHandle.flush()
+    # outFileHandle.close()
   
+  # CREATE PANDAS DATAFRAME FROM RESULTS
+    np_array = np.array(result)
+    headers = np_array[0, :]
+    np_array = np.delete(np_array,0,0)
+    df = pd.DataFrame(np_array, columns=headers)
+
   #Facultative...
     end_time = time.time()
     print ("Processed in " + str(round(end_time - start_time,0)) + " seconds")
-    print ("Output stored in ", outFileName)
+    # print ("Output stored in ", outFileName)
     print ("done")
-    return result
+    # return result
+    return df
 
 # def main():
 #   getWeatherData(Longitude = 14.966223, Latitude= 48.032695)

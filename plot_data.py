@@ -1,13 +1,17 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
-def plot_column(df, column, title=""):
-    df[column].plot()
-    plt.title(title)
-    plt.xlabel("Time")      
-    plt.ylabel(column)      
-    plt.show()
+def plot_column(df, col_name, title, legend='Databases', kind='line'):
+    df.plot(x='time',kind=kind)
+    plt.legend(title=legend)
+
+    plt.ylabel(col_name, fontsize=14)
+    plt.xlabel('Time', fontsize=14)
+    plt.title(title, fontsize=16)
+
+    # plt.show()
 
 def plot_multile_columns(dfs, column, title=""):
     for df in dfs:
@@ -15,4 +19,16 @@ def plot_multile_columns(dfs, column, title=""):
     plt.title(title)
     plt.xlabel("Time")      
     plt.ylabel(column)      
-    plt.show()        
+    plt.show()
+
+def show_plot():
+    plt.show()
+
+def save_plot_to_file(file):
+    plt.savefig(file, dpi=1200)
+
+def create_plot_folder(name):
+    newpath = f'plots/{name}' 
+    if not os.path.exists(newpath):
+        os.makedirs(newpath)
+    return newpath
