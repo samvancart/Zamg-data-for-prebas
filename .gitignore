@@ -8,6 +8,7 @@ start-vs-code.bat
 data/
 clipick/outputs/
 plots/
+coordinates/
 
 # Editor temporary/working/backup files #
 #########################################
