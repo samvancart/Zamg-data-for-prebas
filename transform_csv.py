@@ -13,11 +13,19 @@ def transform_spartacus_daily(df):
 def transform_inca_hourly(df):
     df = calculate_daily_means_and_sums_from_hourly(df)
     df = add_value(df, 'VPD', calculate_vpd)
+    df = add_value(df, 'RSS', convert_gl_to_rss)
     df = lat_lon_to_end(df)
     # df = df.rename(columns={"RR [kg m-2]": "RRSUM [kg m-2]"})
+    df.drop(['GL [W m-2]'],axis=1,inplace=True)
     df = df.rename(columns={"RR [kg m-2]": "Precip"})
     df = df.rename(columns={"T2M [degree_Celsius]": "TAir"})
     df = df.rename(columns={"RH2M [percent]": "RH"})
+    return df
+
+def rename_all_columns(df, name):
+    for col_name in df.columns:
+        if col_name != 'time':
+            df = df.rename(columns={col_name: f'{col_name} {name}'})
     return df
 
 def write_df_to_csv(df, file, index=True):
@@ -96,6 +104,12 @@ def add_value(df,column_name,function):
     df[column_name] = df.apply(function, axis=1)
     return df
 
+# USING FORMULA: 1 W/m2 = 0.0864 MJ/m2/day. SAME AS 60*60*24*(W/m-2)/1000000 = MJ/m-2/day
+def convert_gl_to_rss(row):
+    conversion = 0.0864
+    gl  = row['GL [W m-2]']
+    rss = gl*conversion
+    return rss 
 
 def transform_clipick(df):
     df = df.astype(float)
@@ -103,8 +117,9 @@ def transform_clipick(df):
     df['RH'] = df[['hursmax', 'hursmin']].mean(axis=1)
     df = add_value(df, 'PAR', calculate_par)
     df = add_value (df, 'VPD', calculate_vpd_clipick)
-    df = df.rename(columns={"pr": "Precip"})
-    df = df[['TAir', 'RH', 'PAR', 'VPD', 'Precip']]
+    df = df.rename(columns={'pr': 'Precip'})
+    df = df.rename(columns={'rss': 'RSS'})
+    df = df[['TAir', 'RH', 'PAR', 'VPD', 'Precip', 'RSS']]
     return df
 
 def transform_csv_to_plottable(df_name, column_name, from_file):
@@ -117,6 +132,10 @@ def transform_csv_to_plottable(df_name, column_name, from_file):
 def transform_df_to_plottable(df, df_name, column_name):
     df = df[['time', column_name]].copy()
     df = df.rename(columns = {column_name:f'{column_name} {df_name}'})
+    df['time'] = df['time'].dt.date
+    return df
+
+def transform_time_to_dt_date(df):
     df['time'] = df['time'].dt.date
     return df
 

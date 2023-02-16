@@ -13,6 +13,19 @@ def plot_column(df, col_name, title, legend='Databases', kind='line'):
 
     # plt.show()
 
+def plot_column_xy(df, col_name, title, y, legend='Databases', kind='line', x='time'):
+    # df.plot(x='time',kind=kind)
+    df.plot(x=x, y=y, kind=kind)
+    plt.legend(title=legend)
+
+    plt.ylabel(y, fontsize=14)
+    # plt.xlabel('Time', fontsize=14)
+    plt.xlabel(x, fontsize=14)
+    plt.title(title, fontsize=16)
+
+    # plt.show()
+
+
 def plot_multile_columns(dfs, column, title=""):
     for df in dfs:
         plt.plot(df[0][column], label=df[1], color='green')
