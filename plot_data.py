@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import os
 
 def plot_column(df, col_name, title, legend='Databases', kind='line'):
-    df.plot(x='time',kind=kind)
+    df.plot(x='time',kind=kind, alpha=0.7)
+    
     plt.legend(title=legend)
 
     plt.ylabel(col_name, fontsize=14)

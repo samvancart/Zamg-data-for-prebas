@@ -48,7 +48,7 @@ def calculate_daily_sums_from_hourly(df):
 def calculate_daily_means_and_sums_from_hourly(df):
     grouped = df.groupby(["lat", "lon"],as_index=True)
     df = grouped.resample('d', on='time').agg(
-        {"GL [W m-2]":lambda x: np.sum(x.values),
+        {"GL [W m-2]":lambda x: np.mean(x.values),
         "RH2M [percent]": lambda x: np.mean(x.values),
         "T2M [degree_Celsius]": lambda x: np.mean(x.values), 
         "RR [kg m-2]": lambda x: np.sum(x.values)})
