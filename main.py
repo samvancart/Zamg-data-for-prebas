@@ -56,15 +56,40 @@ def main():
 
 
 
-def correlation_with_all(df, col_name, drop_cols=[]):
-    for col in drop_cols:
-        df.drop([col], axis=1, inplace=True)
-    corr = df.corrwith(df[col_name], numeric_only=True)
-    return corr
 
-def get_corr_df(data):
-    df_corr = pd.DataFrame(data=data)
-    return df_corr
+
+
+
+def filter_df_by_date(df, start_date='2011-03-15', end_date='2022-12-31'):
+    filtered = df.loc[(df['time'] >= start_date )
+                      & (df['time'] <= end_date )]
+    return filtered
+
+# Returns deltas for means as series
+def get_deltas(df1,df2):
+    means1 = df1.mean(numeric_only=True)
+    means2 = df2.mean(numeric_only=True)
+    delta = means1 - means2
+    return delta
+
+def get_bias_corrected_df(df, delta):
+    """ Adds bias corrected values to original dataframe values
+    Parameters:
+        df (pandas dataframe): dataframe with original values
+        delta (pandas series): series with correction biases for each column in df (names must match df column names)
+    Returns:
+        dataframe: dataframe of bias corrected values
+    """
+    biases_d = {}
+    for c in df.columns:
+        if c in delta:
+            vals=df[c]+delta[c]
+            biases_d.update({c:vals})
+        else:
+            biases_d.update({c:df[c]})
+    df_bias_corr = pd.DataFrame(data=biases_d)
+    return df_bias_corr
+
 
 def get_for_coords(coordinates = [
         [
@@ -80,10 +105,11 @@ def get_for_coords(coordinates = [
     
     coords_list = np.array(coordinates)
 
+    # Get data for each coordinate c
     for c in coords_list:
         print(f"Getting data for lat {c[0]}, lon {c[1]}...")
 
-        df_sparta  = get_spartacus(start_date_sparta,coordinates=c)
+        # GET DATA
         df_inca    = get_inca(start_date_inca,id_inca,parameters_inca,end_time_inca,coordinates=c)
         
         coords_clipick = c.astype(float)
@@ -91,51 +117,74 @@ def get_for_coords(coordinates = [
         lon = coords_clipick[1]
         df_clipick = get_clipick(Latitude=lat, Longitude=lon)
 
+        # GET BIAS CORRECTED VALUES
+        df_filtered_clipick = filter_df_by_date(df_clipick)
+        delta = get_deltas(df_inca, df_filtered_clipick)
+        df_clipick = get_bias_corrected_df(df_filtered_clipick, delta)
+        # df_bias_corr = get_bias_corrected_df(df_filtered_clipick, delta)
+
+        # CONCAT BIAS CORR DF WITH ORIGINAL
+        # df_clipick_start = filter_df_by_date(df_clipick, '1970-01-01', '2011-03-14')
+        # df_clipick = pd.concat([df_clipick_start, df_bias_corr])
+
         # GET INTRA CORRELATION
         inca_corr = correlation_with_all(df_inca, 'RSS', ['lat','lon'])
         clipick_corr = correlation_with_all(df_clipick, 'RSS')
-        data = {'INCA':inca_corr, 'CLIPICK':clipick_corr}
+        data = {'INCA':inca_corr, 'CLIPICK_BC':clipick_corr}
         df_corr = get_corr_df(data)
 
-        get_plots_and_corr(df_inca,df_sparta,df_clipick,c,df_corr)
+        # WRITE INTRA CORRELATION TO FILE
+        path = 'inca_clipick_bias_corr'
+        plot_path = get_plot_path(path, c)
+        intra_correlations_to_csv(df_corr, plot_path)
 
+        # WRITE DELTAS TO FILE
+        deltas_file = f'{plot_path}/deltas.csv'
+        delta.dropna(inplace=True)
+        delta.to_csv(deltas_file)
 
+        # VARIABLES FOR PLOTTING
+        column_names = ['TAir', 'Precip', 'RH', 'VPD', 'RSS']
+        titles = ['Temperatures', 'Precipitation', 'Relative Humidity', 'Water Vapour Deficit', 'Solar Radiation']
+        kinds = ['line', 'line', 'line', 'line', 'line']
 
-def get_plots_and_corr(df_inca, df_sparta, df_clipick,c,df_corr):
-    column_names = ['TAir', 'Precip', 'RH', 'VPD', 'RSS']
-    titles = ['Temperatures', 'Precipitation', 'Relative Humidity', 'Water Vapour Deficit', 'Solar Radiation']
-    kinds = ['line', 'line', 'line', 'line', 'line']
-    input_coords = ["48.032695", "14.966223"]
+        # CREATE PLOTS
+        get_plots_for_pair(df_inca, df_clipick, 'Inca', 'Clipick_BC', c,
+                           column_names, titles, kinds, plot_path)
 
-    plot_folder = f'plot_{c[0]}_{c[1]}'
+# Create folder path for plots
+def get_plot_path(folder_name, c):
+    plot_folder = f'{folder_name}_{c[0]}_{c[1]}'
     plot_path = pl.create_plot_folder(plot_folder)
-    extension = 'png'
-    corr_file = f'{plot_path}/intra_correlations.csv'
+    return plot_path
+
+# Create file for correlations
+def intra_correlations_to_csv(df, path):
+    corr_file = f'{path}/intra_correlations.csv'
     print(f'Writing intra correlations file...')
-    df_corr.fillna(np.nan, inplace=True)
-    df_corr.to_csv(corr_file)
+    df.fillna('NaN', inplace=True) # If 'NaN' causes problems replace with np.nan
+    df.to_csv(corr_file)
     print('Done.')
 
+
+def get_plots_for_pair(df1, df2, df1_name, df2_name, c, column_names, titles, kinds, plot_path, extension='png'):
+
+    # Create plots for each column
     for i in range(len(column_names)):
         print(f"Plotting {column_names[i]}...")
-        df_inca_plottable = tr.transform_df_to_plottable(df_inca, 'Inca', column_names[i])
-        df_clipick_plottable = tr.transform_df_to_plottable(df_clipick, 'Clipick', column_names[i])
+        df1_plottable = tr.transform_df_to_plottable(df1, df1_name, column_names[i])
+        df2_plottable = tr.transform_df_to_plottable(df2, df2_name, column_names[i])
 
-
-        merged = tr.merge_dfs(df_clipick_plottable, df_inca_plottable)
+        merged = tr.merge_dfs(df2_plottable, df1_plottable)
 
         file = f'{plot_path}/{column_names[i]}.{extension}'
         
-        if i > 1:
-            pl.plot_column(merged, column_names[i], titles[i], kind=kinds[i])
-            pl.save_plot_to_file(file)
-        else:
-            df_sparta_plottable = tr.transform_df_to_plottable(df_sparta, 'Spartacus', column_names[i])
-            df = tr.merge_dfs(merged, df_sparta_plottable)
-            pl.plot_column(df, column_names[i], titles[i], kind=kinds[i])
-            pl.save_plot_to_file(file)
+        pl.plot_column(merged, column_names[i], titles[i], kind=kinds[i])
+        pl.save_plot_to_file(file)
+
 
     print(f"Plots for lat {c[0]}, lon {c[1]} done.")
+    print(f'Plot path: {plot_path}')
 
 
 def get_spartacus(start_date_sparta, coordinates=[["48.032695", "14.966223"]]):
@@ -174,6 +223,18 @@ def get_zamg_coords_from_csv(coords_file):
     df_coords = pd.read_csv(coords_file)
     coords_list = np.array(df_coords).astype(str)
     return coords_list
+
+# Intra correlations
+def correlation_with_all(df, col_name, drop_cols=[]):
+    for col in drop_cols:
+        df.drop([col], axis=1, inplace=True)
+    corr = df.corrwith(df[col_name], numeric_only=True)
+    return corr
+
+def get_corr_df(data):
+    df_corr = pd.DataFrame(data=data)
+    return df_corr
+
 
 if __name__ == '__main__':
     main()
