@@ -51,10 +51,8 @@ def main():
     # coords_list = np.array(coord)
     start_date_sparta = "1970-01-01"
 
-    get_for_coords(coordinates=coords_list)
+    # get_for_coords(coordinates=coords_list)
     # get_for_coords()
-
-
 
 
 
@@ -122,6 +120,7 @@ def get_for_coords(coordinates = [
         delta = get_deltas(df_inca, df_filtered_clipick)
         df_clipick = get_bias_corrected_df(df_filtered_clipick, delta)
         # df_bias_corr = get_bias_corrected_df(df_filtered_clipick, delta)
+        # df_clipick = get_bias_corrected_df(df_clipick, delta)
 
         # CONCAT BIAS CORR DF WITH ORIGINAL
         # df_clipick_start = filter_df_by_date(df_clipick, '1970-01-01', '2011-03-14')
@@ -231,6 +230,7 @@ def correlation_with_all(df, col_name, drop_cols=[]):
     corr = df.corrwith(df[col_name], numeric_only=True)
     return corr
 
+# Correlations as df
 def get_corr_df(data):
     df_corr = pd.DataFrame(data=data)
     return df_corr

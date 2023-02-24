@@ -57,6 +57,25 @@ def calculate_daily_means_and_sums_from_hourly(df):
     lat_lon_to_end(df)
     return df
 
+# Improved function
+def calculate_daily_from_hourly_from_list(df, cols):
+    grouped = df.groupby(["lat", "lon"],as_index=True)
+    data = {}
+    for c,f in cols:
+        resampled = grouped.resample('d', on='time').agg(
+        { c: lambda x: f(x.values)}) # np.mean or np.sum
+        data.update({c :resampled[c]})
+    df = pd.DataFrame(data=data)
+    df = reset_indexes(df, [['lon'],['lat']])
+    lat_lon_to_end(df)
+    return df
+
+# reset lat and lon. Indexes as [['lat'],['lon']]
+def reset_indexes(df, indexes):
+    for index in indexes:
+        df.reset_index(level=index,inplace=True)
+    return df
+
 def lat_lon_to_end(df):
     lat = df[['lat']]
     lon = df[['lon']]
@@ -104,7 +123,7 @@ def add_value(df,column_name,function):
     df[column_name] = df.apply(function, axis=1)
     return df
 
-# USING FORMULA: 1 W/m2 = 0.0864 MJ/m2/day. SAME AS 60*60*24*(W/m-2)/1000000 = MJ/m-2/day
+# FORMULA USED: 1 W/m2 = 0.0864 MJ/m2/day. SAME AS 60*60*24*(W/m-2)/1000000 = MJ/m-2/day
 def convert_gl_to_rss(row):
     conversion = 0.0864
     gl  = row['GL [W m-2]']
