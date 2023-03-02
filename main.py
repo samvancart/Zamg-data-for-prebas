@@ -54,9 +54,121 @@ def main():
     # get_for_coords(coordinates=coords_list)
     # get_for_coords()
 
+    # df_clipick = cl.getWeatherData(Latitude=48.032695, Longitude=14.966223, StartYear=1970, EndMonth=12, EndYear=2022)
+    # file = (f'data/from_clipick_test.csv')
+    # df_clipick.to_csv(file, index=False)
+
+    inca_file = f'data/to_inca.csv'
+    df_inca = pd.read_csv(inca_file, parse_dates=['time'])
+    clipick_file = f'data/to_clipick.csv'
+    df_clipick = pd.read_csv(clipick_file, parse_dates=['time'])
+    filtered_clipick = filter_df_by_date(df_clipick)
+
+    inca_annual_pr_sum_mean = get_combined_annual_mean(df_inca)
+    clipick_annual_pr_sum_mean = get_combined_annual_mean(filtered_clipick)
+
+    daily_bias = (inca_annual_pr_sum_mean-clipick_annual_pr_sum_mean)/365
+    print(daily_bias)
+
+    deltas = get_deltas(df_inca,filtered_clipick)
+    print(deltas)
+    deltas['Precip'] = daily_bias
+    print(deltas)
+
+    # GET BIAS CORRECTED VALUES
+    df_clipick_bs = get_modified_df(filtered_clipick, deltas, get_bias_vals)
+    print(df_clipick_bs)
+
+    # GET ALL QUANTILES
+    clipick_q = df_clipick_bs.quantile([.05, .95], numeric_only=True)
+    inca_q = df_inca.quantile([.05, .95], numeric_only=True)
+
+    # GET PRECIPITATION QUANTILES FOR NONZERO ONLY
+    clipick_q_precip = get_nonzero_quantiles(df_clipick_bs)
+    inca_q_precip = get_nonzero_quantiles(df_inca)
+
+    # REPLACE DF PRECIP QUANTILE
+    clipick_q['Precip'] = clipick_q_precip.values
+    inca_q['Precip'] = inca_q_precip.values
+
+    # RESET INDEX
+    clipick_q.reset_index(drop=True, inplace=True)
+    inca_q.reset_index(drop=True, inplace=True)
+
+    # NORMALIZE DATA
+    df_clipick_norm = get_modified_df(df_clipick_bs, clipick_q, get_norm_vals)
+    print("BIAS CORR")
+    print(df_clipick_bs)
+    print("NORMALISED")
+    print(df_clipick_norm)
+
+    # RESCALE DATA
+    df_clipick_rescaled = get_modified_df(df_clipick_norm, inca_q, rescale_vals)
+    print(df_clipick_rescaled)
+
+    file = (f'data/to_clipick_norm_rescaled.csv')
+    df_clipick_rescaled.to_csv(file, index=False)
+
+    
+
+def get_nonzero_quantiles(df,c='Precip',quantile=[.1, .9]):
+    mask_new = df[c]
+    new = mask_new.where(mask_new>0)
+    precip_q = new.quantile(quantile)
+    return precip_q
+
+def get_modified_df(df, series, function):
+    """ Replaces original dataframe values with modified ones
+    Parameters:
+        df (pandas dataframe): dataframe with original values
+        series (pandas series): series with new constants for each column in df (names must match df column names)
+    Returns:
+        dataframe: dataframe with modified values
+    """
+    mod_d = {}
+    for c in df.columns:
+        if c in series:
+            vals = function(c, df, series)
+            mod_d.update({c:vals})
+        else:
+            mod_d.update({c:df[c]})
+    df_mod = pd.DataFrame(data=mod_d)
+    return df_mod
+
+def rescale_vals(c,df, q):
+    min = q.loc[0]
+    max = q.loc[1]
+    if c == 'Precip':
+        vals = df[c].apply(lambda x: (x * (max[c] - min[c]) + min[c]) if x>0 else x)
+        return vals
+    else:
+        vals = (df[c] * (max[c] - min[c]) + min[c])
+        return vals
+
+def get_norm_vals(c,df, q):
+    min = q.loc[0]
+    max = q.loc[1]
+    if c == 'Precip':
+        vals = df[c].apply(lambda x: (x-min[c])/(max[c]-min[c]) if x>0 else x)
+        return vals
+    else:
+        vals = (df[c]-min[c])/(max[c]-min[c])
+        return vals
 
 
+# Mean of annual sums
+def get_combined_annual_mean(df):
+    df_annual_pr_sum = get_annual_sums(df)
+    return df_annual_pr_sum.mean()
 
+
+def get_annual_sums(df, value='Precip'):
+    grouped = df.groupby(df['time'].dt.year)[value].sum()
+    return grouped
+
+def get_annual_means(df, value='Precip'):
+    grouped = df.groupby(df['time'].dt.year)[value].mean()
+    return grouped
 
 def filter_df_by_date(df, start_date='2011-03-15', end_date='2022-12-31'):
     filtered = df.loc[(df['time'] >= start_date )
@@ -70,6 +182,14 @@ def get_deltas(df1,df2):
     delta = means1 - means2
     return delta
 
+def get_bias_vals(c,df,delta):
+    if c == 'Precip':
+        vals = df[c].apply(lambda x: x+delta[c] if x>0 else x)
+        return vals
+    else:
+        vals = df[c]+delta[c]
+        return vals
+    
 def get_bias_corrected_df(df, delta):
     """ Adds bias corrected values to original dataframe values
     Parameters:
@@ -81,7 +201,8 @@ def get_bias_corrected_df(df, delta):
     biases_d = {}
     for c in df.columns:
         if c in delta:
-            vals=df[c]+delta[c]
+            # vals=df[c]+delta[c]
+            vals = get_bias_vals(c, df, delta)
             biases_d.update({c:vals})
         else:
             biases_d.update({c:df[c]})
