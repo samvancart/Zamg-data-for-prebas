@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import transform_csv as tr
 import get_data as gd
 import plot_data as pl
+import normalise_data as nd
 from clipick import clipick_forPython3 as cl
 
 
@@ -62,152 +63,32 @@ def main():
     df_inca = pd.read_csv(inca_file, parse_dates=['time'])
     clipick_file = f'data/to_clipick.csv'
     df_clipick = pd.read_csv(clipick_file, parse_dates=['time'])
-    filtered_clipick = filter_df_by_date(df_clipick)
+    filtered_clipick = nd.filter_df_by_date(df_clipick)
 
-    inca_annual_pr_sum_mean = get_combined_annual_mean(df_inca)
-    clipick_annual_pr_sum_mean = get_combined_annual_mean(filtered_clipick)
-
-    daily_bias = (inca_annual_pr_sum_mean-clipick_annual_pr_sum_mean)/365
-    print(daily_bias)
-
-    deltas = get_deltas(df_inca,filtered_clipick)
-    print(deltas)
-    deltas['Precip'] = daily_bias
-    print(deltas)
+    # GET MEANS OF YEARLY SUMS
+    inca_annual_pr_sum_mean = nd.get_combined_annual_mean(df_inca)
+    clipick_annual_pr_sum_mean = nd.get_combined_annual_mean(filtered_clipick)
 
     # GET BIAS CORRECTED VALUES
-    df_clipick_bs = get_modified_df(filtered_clipick, deltas, get_bias_vals)
-    print(df_clipick_bs)
+    daily_bias = (inca_annual_pr_sum_mean-clipick_annual_pr_sum_mean)/365
+    delta = nd.get_deltas(df_inca, filtered_clipick)
+    delta['Precip'] = daily_bias
+    df_clipick = nd.get_modified_df(df_clipick, delta, nd.get_bias_vals)
 
-    # GET ALL QUANTILES
-    clipick_q = df_clipick_bs.quantile([.05, .95], numeric_only=True)
-    inca_q = df_inca.quantile([.05, .95], numeric_only=True)
+    # GET QUANTILE DF:S
+    df_clipick_q = nd.get_quantile_df(df_clipick)
+    df_inca_q    = nd.get_quantile_df(df_inca)
 
-    # GET PRECIPITATION QUANTILES FOR NONZERO ONLY
-    clipick_q_precip = get_nonzero_quantiles(df_clipick_bs)
-    inca_q_precip = get_nonzero_quantiles(df_inca)
+    # NORMALISE AND RESCALE
+    df_clipick = nd.norm_and_rescale(df_clipick, df_clipick_q, df_inca_q)
+    print(df_clipick)
 
-    # REPLACE DF PRECIP QUANTILE
-    clipick_q['Precip'] = clipick_q_precip.values
-    inca_q['Precip'] = inca_q_precip.values
-
-    # RESET INDEX
-    clipick_q.reset_index(drop=True, inplace=True)
-    inca_q.reset_index(drop=True, inplace=True)
-
-    # NORMALIZE DATA
-    df_clipick_norm = get_modified_df(df_clipick_bs, clipick_q, get_norm_vals)
-    print("BIAS CORR")
-    print(df_clipick_bs)
-    print("NORMALISED")
-    print(df_clipick_norm)
-
-    # RESCALE DATA
-    df_clipick_rescaled = get_modified_df(df_clipick_norm, inca_q, rescale_vals)
-    print(df_clipick_rescaled)
-
-    file = (f'data/to_clipick_norm_rescaled.csv')
-    df_clipick_rescaled.to_csv(file, index=False)
-
+    # REPLACE PRECIP MINUS VALUES WITH 0 
+    df_clipick = nd.minuses_to_zero(df_clipick)
+    print(df_clipick)
     
 
-def get_nonzero_quantiles(df,c='Precip',quantile=[.1, .9]):
-    mask_new = df[c]
-    new = mask_new.where(mask_new>0)
-    precip_q = new.quantile(quantile)
-    return precip_q
 
-def get_modified_df(df, series, function):
-    """ Replaces original dataframe values with modified ones
-    Parameters:
-        df (pandas dataframe): dataframe with original values
-        series (pandas series): series with new constants for each column in df (names must match df column names)
-    Returns:
-        dataframe: dataframe with modified values
-    """
-    mod_d = {}
-    for c in df.columns:
-        if c in series:
-            vals = function(c, df, series)
-            mod_d.update({c:vals})
-        else:
-            mod_d.update({c:df[c]})
-    df_mod = pd.DataFrame(data=mod_d)
-    return df_mod
-
-def rescale_vals(c,df, q):
-    min = q.loc[0]
-    max = q.loc[1]
-    if c == 'Precip':
-        vals = df[c].apply(lambda x: (x * (max[c] - min[c]) + min[c]) if x>0 else x)
-        return vals
-    else:
-        vals = (df[c] * (max[c] - min[c]) + min[c])
-        return vals
-
-def get_norm_vals(c,df, q):
-    min = q.loc[0]
-    max = q.loc[1]
-    if c == 'Precip':
-        vals = df[c].apply(lambda x: (x-min[c])/(max[c]-min[c]) if x>0 else x)
-        return vals
-    else:
-        vals = (df[c]-min[c])/(max[c]-min[c])
-        return vals
-
-
-# Mean of annual sums
-def get_combined_annual_mean(df):
-    df_annual_pr_sum = get_annual_sums(df)
-    return df_annual_pr_sum.mean()
-
-
-def get_annual_sums(df, value='Precip'):
-    grouped = df.groupby(df['time'].dt.year)[value].sum()
-    return grouped
-
-def get_annual_means(df, value='Precip'):
-    grouped = df.groupby(df['time'].dt.year)[value].mean()
-    return grouped
-
-def filter_df_by_date(df, start_date='2011-03-15', end_date='2022-12-31'):
-    filtered = df.loc[(df['time'] >= start_date )
-                      & (df['time'] <= end_date )]
-    return filtered
-
-# Returns deltas for means as series
-def get_deltas(df1,df2):
-    means1 = df1.mean(numeric_only=True)
-    means2 = df2.mean(numeric_only=True)
-    delta = means1 - means2
-    return delta
-
-def get_bias_vals(c,df,delta):
-    if c == 'Precip':
-        vals = df[c].apply(lambda x: x+delta[c] if x>0 else x)
-        return vals
-    else:
-        vals = df[c]+delta[c]
-        return vals
-    
-def get_bias_corrected_df(df, delta):
-    """ Adds bias corrected values to original dataframe values
-    Parameters:
-        df (pandas dataframe): dataframe with original values
-        delta (pandas series): series with correction biases for each column in df (names must match df column names)
-    Returns:
-        dataframe: dataframe of bias corrected values
-    """
-    biases_d = {}
-    for c in df.columns:
-        if c in delta:
-            # vals=df[c]+delta[c]
-            vals = get_bias_vals(c, df, delta)
-            biases_d.update({c:vals})
-        else:
-            biases_d.update({c:df[c]})
-    df_bias_corr = pd.DataFrame(data=biases_d)
-    return df_bias_corr
 
 
 def get_for_coords(coordinates = [
@@ -236,25 +117,34 @@ def get_for_coords(coordinates = [
         lon = coords_clipick[1]
         df_clipick = get_clipick(Latitude=lat, Longitude=lon)
 
-        # GET BIAS CORRECTED VALUES
-        df_filtered_clipick = filter_df_by_date(df_clipick)
-        delta = get_deltas(df_inca, df_filtered_clipick)
-        df_clipick = get_bias_corrected_df(df_filtered_clipick, delta)
-        # df_bias_corr = get_bias_corrected_df(df_filtered_clipick, delta)
-        # df_clipick = get_bias_corrected_df(df_clipick, delta)
+        # FILTER DF BY DATES
+        df_filtered_clipick = nd.filter_df_by_date(df_clipick)
 
-        # CONCAT BIAS CORR DF WITH ORIGINAL
-        # df_clipick_start = filter_df_by_date(df_clipick, '1970-01-01', '2011-03-14')
-        # df_clipick = pd.concat([df_clipick_start, df_bias_corr])
+        # GET MEANS OF YEARLY SUMS
+        inca_annual_pr_sum_mean = nd.get_combined_annual_mean(df_inca)
+        clipick_annual_pr_sum_mean = nd.get_combined_annual_mean(df_filtered_clipick)
+
+        # GET BIAS CORRECTED VALUES
+        daily_bias = (inca_annual_pr_sum_mean-clipick_annual_pr_sum_mean)/365
+        delta = nd.get_deltas(df_inca, df_filtered_clipick)
+        delta['Precip'] = daily_bias
+        df_clipick = nd.get_modified_df(df_clipick, delta, nd.get_bias_vals)
+
+        # GET QUANTILE DF:S
+        df_clipick_q = nd.get_quantile_df(df_clipick)
+        df_inca_q    = nd.get_quantile_df(df_inca)
+
+        # NORMALISE AND RESCALE
+        df_clipick = nd.norm_and_rescale(df_clipick, df_clipick_q, df_inca_q)
 
         # GET INTRA CORRELATION
         inca_corr = correlation_with_all(df_inca, 'RSS', ['lat','lon'])
         clipick_corr = correlation_with_all(df_clipick, 'RSS')
-        data = {'INCA':inca_corr, 'CLIPICK_BC':clipick_corr}
+        data = {'INCA':inca_corr, 'CLIPICK_NORM':clipick_corr}
         df_corr = get_corr_df(data)
 
         # WRITE INTRA CORRELATION TO FILE
-        path = 'inca_clipick_bias_corr'
+        path = 'inca_clipick_normalised'
         plot_path = get_plot_path(path, c)
         intra_correlations_to_csv(df_corr, plot_path)
 
@@ -269,7 +159,7 @@ def get_for_coords(coordinates = [
         kinds = ['line', 'line', 'line', 'line', 'line']
 
         # CREATE PLOTS
-        get_plots_for_pair(df_inca, df_clipick, 'Inca', 'Clipick_BC', c,
+        get_plots_for_pair(df_inca, df_clipick, 'Inca', 'Clipick_NORM', c,
                            column_names, titles, kinds, plot_path)
 
 # Create folder path for plots
@@ -286,7 +176,7 @@ def intra_correlations_to_csv(df, path):
     df.to_csv(corr_file)
     print('Done.')
 
-
+# Plot two dataframes
 def get_plots_for_pair(df1, df2, df1_name, df2_name, c, column_names, titles, kinds, plot_path, extension='png'):
 
     # Create plots for each column
