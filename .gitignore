@@ -10,6 +10,9 @@ clipick/outputs/
 plots/
 coordinates/
 
+#code
+scrape_html.py
+
 # Editor temporary/working/backup files #
 #########################################
 .#*
