@@ -72,6 +72,14 @@ def convert_copernicus_to_df(dataset):
     df.rename(columns={'latitude':'lat', 'longitude':'lon'}, inplace=True)
     return df
 
+# TRANSFORM DATAFRAME
+def transform_df(df, columns, rename_cols):
+    df.reset_index(inplace=True)
+    df.set_index(df['time'], inplace=True)
+    df=df[columns]
+    df = df.rename(columns=rename_cols)
+    return df
+
 # WRITE TO CSV
 # csv_file = 'data/csv/INCAL_DAILY_T2M_2015_styria_grouped.csv'
 def write_to_csv(df, path):
@@ -94,11 +102,15 @@ def nearest_x(df,x,column):
     return coord
 
 
-df_cop = convert_copernicus_to_df(data)
+
+
+df_cop = data.to_dataframe()
+df_cop = transform_df(df_cop,['tg','latitude','longitude'], {'tg':'TAir', 'latitude':'lat', 'longitude':'lon'})
+# df_cop = transform_df(df_cop,['tg','latitude','longitude'], {'latitude':'lat', 'longitude':'lon'})
 
 inca_file = f'data/csv/INCAL_DAILY_T2M_2015_styria.csv'
 df_inca = pd.read_csv(inca_file, parse_dates=['time'])
-
+df_inca = transform_df(df_inca,['T2M','lat','lon'], {'T2M':'TAir'})
 
 
 start_date = "2015-01-01"
@@ -122,21 +134,47 @@ df_cop['lon'] = np.around(df_cop['lon'],decimals=2)
 
 # print(df_cop)
 
-# nearest_df = find_nearest_coords(df_inca, 47.05, 15.05)
+# GET NEAREST COORDS: DON'T TRANSFORM DF BEFORE FINDING NEAREST
+
+cop_lat = 47.25
+cop_lon = 16.05
+
+# nearest_df = find_nearest_coords(df_inca, cop_lat, cop_lon)
+# print('nearest df')
 # print(nearest_df)
+# print('nearest lat')
+# print(nearest_df['lat'])
+# print('nearest lon')
+# print(nearest_df['lon'])
 
-# nearest_lat  = 47.12
-# nearest_lon  = 15.11
-# lat_cop  = nearest_x(df_cop, nearest_lat, 'lat')
-# lon_cop = nearest_x(df_cop, nearest_lon, 'lon')
 
-mask_cop = (df_cop['lat']==47.05) & (df_cop['lon']==15.05)
+# NEAREST TO CSV
+
+# inca_lat = nearest_df['lat']
+# inca_lon = nearest_df['lon']
+
+inca_lat = 47.25115
+inca_lon = 16.055355
+
+mask_cop = (df_cop['lat']==cop_lat) & (df_cop['lon']==cop_lon)
 print('masked copernicus')
-print(df_cop.loc[mask_cop])
-mask_inca = (df_inca['lat']==47.04577) & (df_inca['lon']==15.044007)
-print('masked inca')
-print(df_inca.loc[mask_inca])
+masked_cop = df_cop.loc[mask_cop]
+print(masked_cop)
 
+lat = str(masked_cop['lat'][0])
+lon = str(masked_cop['lon'][0])
+path = f'data/csv/copernicus_tair_styria_2015_{lat}_{lon}.csv'
+write_to_csv(masked_cop, path)
+
+mask_inca = (df_inca['lat']==inca_lat) & (df_inca['lon']==inca_lon)
+print('masked inca')
+masked_inca = df_inca.loc[mask_inca]
+print(masked_inca)
+
+lat = str(masked_inca['lat'][0])
+lon = str(masked_inca['lon'][0])
+path = f'data/csv/inca_tair_styria_2015_{lat}_{lon}.csv'
+write_to_csv(masked_inca, path)
 
 
 # lat_inca  = nearest_x(df_inca, nearest_lat, 'lat')

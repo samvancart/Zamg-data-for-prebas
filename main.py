@@ -16,76 +16,34 @@ from clipick import clipick_forPython3 as cl
 
 
 def main():
-    # start_date_inca = str(date.today()-timedelta(days=20))
-    # end_date_inca = str(date.today()-timedelta(days=2))
+    cop_lat = "47.25"
+    cop_lon= "16.05"
 
-    start_date_inca = "2011-03-15"
-    end_time_inca = "T23:00"
-    id_inca = "inca-v1-1h-1km?"
-    parameters_inca = ["GL", "RH2M", "T2M", "RR"]
+    lat = "47.25115"
+    lon = "16.055355"
 
-    coordinates = [
-        [
-            "48.032695",
-            "14.966223",
-        ],
-        [
-            "48.56151",
-            "13.13215",
-        ]
-    ]
-    coordinates_bad = [        
-        [
-            "52.032695",
-            "14.966223",
-        ]
-    ]
+    c = [lat, lon]
 
-    coord = [
-        [
-            "46.993145",
-            "15.626546",
-        ]
-    ]
-    coords_file = "coordinates/coordsList.csv"
-    coords_list = get_zamg_coords_from_csv(coords_file)
-    # coords_list = np.array(coord)
-    start_date_sparta = "1970-01-01"
+    path = f'data/csv/inca_tair_styria_2015_{lat}_{lon}.csv'
+    df_inca = pd.read_csv(path, parse_dates=['time'])
+    print(df_inca)
+    path = f'data/csv/copernicus_tair_styria_2015_{cop_lat}_{cop_lon}.csv'
+    df_cop = pd.read_csv(path, parse_dates=['time'])
+    print(df_cop)
 
-    # get_for_coords(coordinates=coords_list)
-    # get_for_coords()
+    # WRITE INTRA CORRELATION TO FILE
+    path = 'inca_copernicus'
+    plot_path = get_plot_path(path, c)
 
-    # df_clipick = cl.getWeatherData(Latitude=48.032695, Longitude=14.966223, StartYear=1970, EndMonth=12, EndYear=2022)
-    # file = (f'data/from_clipick_test.csv')
-    # df_clipick.to_csv(file, index=False)
+    # VARIABLES FOR PLOTTING
+    column_names = ['TAir']
+    titles = ['Temperatures']
+    kinds = ['line']
 
-    inca_file = f'data/to_inca.csv'
-    df_inca = pd.read_csv(inca_file, parse_dates=['time'])
-    clipick_file = f'data/to_clipick.csv'
-    df_clipick = pd.read_csv(clipick_file, parse_dates=['time'])
-    filtered_clipick = nd.filter_df_by_date(df_clipick)
+    # CREATE PLOTS
+    get_plots_for_pair(df_inca, df_cop, f'Inca_{lat}_{lon}', f'Copernicus_{cop_lat}_{cop_lon}', c,
+                        column_names, titles, kinds, plot_path)
 
-    # GET MEANS OF YEARLY SUMS
-    inca_annual_pr_sum_mean = nd.get_combined_annual_mean(df_inca)
-    clipick_annual_pr_sum_mean = nd.get_combined_annual_mean(filtered_clipick)
-
-    # GET BIAS CORRECTED VALUES
-    daily_bias = (inca_annual_pr_sum_mean-clipick_annual_pr_sum_mean)/365
-    delta = nd.get_deltas(df_inca, filtered_clipick)
-    delta['Precip'] = daily_bias
-    df_clipick = nd.get_modified_df(df_clipick, delta, nd.get_bias_vals)
-
-    # GET QUANTILE DF:S
-    df_clipick_q = nd.get_quantile_df(df_clipick)
-    df_inca_q    = nd.get_quantile_df(df_inca)
-
-    # NORMALISE AND RESCALE
-    df_clipick = nd.norm_and_rescale(df_clipick, df_clipick_q, df_inca_q)
-    print(df_clipick)
-
-    # REPLACE PRECIP MINUS VALUES WITH 0 
-    df_clipick = nd.minuses_to_zero(df_clipick)
-    print(df_clipick)
     
 
 
