@@ -8,8 +8,15 @@ from math import radians, cos, sin, asin, sqrt
 
 
 def _preprocess(x, lon_bnds, lat_bnds):
+    # Configure variable names
+    coords = list(x.coords)
+    ds = x
+    if 'lon' in coords or 'lat' in coords:
+        ds = ds.rename_vars({'lon':'longitude', 'lat':'latitude'})
     # Remove unwanted data by coordinates
-    ds = x.where((x.latitude<=lat_bnds[1]) & (x.latitude>=lat_bnds[0]) & (x.longitude<=lon_bnds[1]) & (x.longitude>=lon_bnds[0]), drop=True)
+    ds = ds.where((ds.latitude<=lat_bnds[1]) & (ds.latitude>=lat_bnds[0]) & (ds.longitude<=lon_bnds[1]) & (ds.longitude>=lon_bnds[0]), drop=True)
+    # Remove unwanted years
+    ds = ds.where((ds['time.year']<2012),drop=True)
     # Return daily means
     # return ds.resample(time="1d").mean()
     return ds
@@ -83,36 +90,46 @@ def nearest_x(df,x,column):
 # path = "data/zamg_netcdf/t2m/2015/INCAL_HOURLY_T2M"
 
 # netcdf_from_file = "tg_ens_mean_0.1deg_reg_2011-2021_v25.0e"
-# netcdf_from_file = "tair_styria_2011-2021"
-# path = f"data/copernicus_netcdf/{netcdf_from_file}.nc"
+netcdf_from_file = "qq_ens_mean_0.1deg_reg_2011-2021_v25.0e"
+# netcdf_from_file = "solar_styria_2011-2021"
+years = '2011_2021/test'
+# path = f"data/copernicus_netcdf/{years}/{netcdf_from_file}.nc"
+path = f"data/copernicus_netcdf/{years}/"
 # path = "data/net_cdf/t2m/2015/INCAL_DAILY_STYRIA_T2M_2015.nc"
 # data = xr.open_dataset(path)
 # data = Dataset(path, 'r')
 
 # BOX BOUNDARIES
-# lon_bnds, lat_bnds = (13, 16.7), (46, 48)
-# partial_func = partial(_preprocess, lon_bnds=lon_bnds, lat_bnds=lat_bnds)
+lon_bnds, lat_bnds = (13, 16.7), (46, 48)
+partial_func = partial(_preprocess, lon_bnds=lon_bnds, lat_bnds=lat_bnds)
 
 # OPEN ALL DATASETS AT ONCE
-# data = xr.open_mfdataset(
-#     # f"{path}_*.nc", combine='nested', concat_dim='time', preprocess=partial_func
-#     path, combine='nested', concat_dim='time', preprocess=partial_func
-# )
+data = xr.open_mfdataset(
+    f"{path}*.nc", combine='nested', concat_dim='time', preprocess=partial_func
+    # path, combine='nested', concat_dim='time', preprocess=partial_func
+)
 
+# print(data)
 # OPEN ONE DATASET 
 # data = xr.open_dataset(path)
-# print(data)
+# data = data.where((data['time.year']<2013),drop=True)
+# print(data["time.year"])
+
+
+# data = data.rename_vars({'lon':'longitude', 'lat':'latitude'})
+# data = data.drop_indexes('ensemble')
+# data=data.reset_index('ensemble',drop=True)
+print(data)
 
 # WRITE NETCDF FILE
-# netcdf_to_file = "tair_styria_2011-2021"
-# path = f"data/copernicus_netcdf/{netcdf_to_file}.nc"
+# netcdf_to_file = "solar_styria_2011-2021"
+# path = f"data/copernicus_netcdf/{years}/{netcdf_to_file}.nc"
 # data.to_netcdf(path)
 
 # GET AS DF
 # df = convert_copernicus_to_df(data)
 # df['lat'] = np.around(df['lat'],decimals=2)
 # df['lon'] = np.around(df['lon'],decimals=2)
-
 
 # DF TO CSV
 # csv_path = f'data/csv/tair_styria_2011-2021.csv'
