@@ -99,6 +99,13 @@ def calculate_vpd_clipick(row):
     vpd = svp * (1-(rh/100)) / 1000
     return vpd
 
+def calculate_vpd_copernicus(row):
+    tair = row['tg']
+    rh = row['hu']
+    svp = 610.7 * 10**(7.5*tair/(237.3+tair))
+    vpd = svp * (1-(rh/100)) / 1000
+    return vpd
+
 def add_vpd(df):
     df['VPD [kPA]'] = df.apply(calculate_vpd,axis=1)
     return df
@@ -126,7 +133,10 @@ def add_value(df,column_name,function):
 # FORMULA USED: 1 W/m2 = 0.0864 MJ/m2/day. SAME AS 60*60*24*(W/m-2)/1000000 = MJ/m-2/day
 def convert_gl_to_rss(row):
     conversion = 0.0864
-    gl  = row['GL [W m-2]']
+    # CLIPICK
+    # gl  = row['GL [W m-2]']
+    # COPERNICUS
+    gl  = row['qq']
     rss = gl*conversion
     return rss 
 
