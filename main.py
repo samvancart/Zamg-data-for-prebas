@@ -12,42 +12,29 @@ import get_data as gd
 import plot_data as pl
 import normalise_data as nd
 from clipick import clipick_forPython3 as cl
+from dateutil import rrule
+from datetime import datetime
 
 
 
 def main():
-    cop_lat = "47.25"
-    cop_lon= "16.05"
-
-    lat = "47.25115"
-    lon = "16.055355"
-
-    c = [lat, lon]
-
-    path = f'data/csv/inca_tair_styria_2015_{lat}_{lon}.csv'
-    df_inca = pd.read_csv(path, parse_dates=['time'])
-    print(df_inca)
-    path = f'data/csv/copernicus_tair_styria_2015_{cop_lat}_{cop_lon}.csv'
-    df_cop = pd.read_csv(path, parse_dates=['time'])
-    print(df_cop)
-
-    # WRITE INTRA CORRELATION TO FILE
-    path = 'inca_copernicus'
-    plot_path = get_plot_path(path, c)
-
-    # VARIABLES FOR PLOTTING
-    column_names = ['TAir']
-    titles = ['Temperatures']
-    kinds = ['line']
-
-    # CREATE PLOTS
-    get_plots_for_pair(df_inca, df_cop, f'Inca_{lat}_{lon}', f'Copernicus_{cop_lat}_{cop_lon}', c,
-                        column_names, titles, kinds, plot_path)
-
-    
+    a = '20200101'
+    b = '20211231'
 
 
+    dates = pd.date_range(a,b,)
+    dates = dates.format(formatter=lambda x: x.strftime('%Y-%m-%d'))
 
+    for date in dates:
+        start_date = date
+        end_date = date
+        year = date.split("-")[0]
+        req_tuple = gd.build_api_call(type="grid" , format='netcdf', start_date=start_date, end_date=end_date, end_time="T23:00", cutout=True)
+        data = gd.get_data(req_tuple)
+        if not data == None:
+            path = f"data/zamg_netcdf/all/{year}/{start_date}.nc"
+            gd.response_to_file(data, path, f'{start_date}.nc')
+        
 
 def get_for_coords(coordinates = [
         [

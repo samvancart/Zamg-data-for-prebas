@@ -9,23 +9,24 @@ import io
 # "https://dataset.api.hub.zamg.ac.at/v1/timeseries/historical/inca-v1-1h-1km?parameters=GL&parameters=RH2M&parameters=RR&parameters=T2M&start=2011-03-15T00%3A00%3A00.000Z&end=2022-12-19T23%3A00%3A00.000Z&lat_lon=48.032695%2C+14.966223&lat_lon=48.03285%2C+14.963108&lat_lon=48.03678%2C+14.969155&output_format=csv&filename=INCA+analysis+-+large+domain+Datensatz_20110315T0000_20221219T2300"
 # "https://dataset.api.hub.zamg.ac.at/v1/timeseries/historical/spartacus-v1-1d-1km?parameters=RR&parameters=Tn&parameters=Tx&start=1961-01-01T00%3A00%3A00.000Z&end=2022-12-19T00%3A00%3A00.000Z&lat_lon=48.172858%2C+14.034002&lat_lon=47.918206%2C+14.942918&lat_lon=48.353981%2C+15.494482&lat_lon=47.693699%2C+14.220446&lat_lon=47.772126%2C+13.699956&lat_lon=47.871297%2C+15.774148&output_format=csv&filename=SPARTACUS+-+Spatial+Reanalysis+Dataset+for+Climate+in+Austria+Datensatz_19610101_20221219"
 # "https://dataset.api.hub.zamg.ac.at/v1/timeseries/historical/spartacus-v1-1d-1km?parameters=RR&parameters=Tn&parameters=Tx&start=1961-01-01T00%3A00%3A00.000Z&end=2022-12-19T00%3A00%3A00.000Z&lat_lon=48.032695%2C+14.966223&output_format=csv&filename=SPARTACUS+-+Spatial+Reanalysis+Dataset+for+Climate+in+Austria+Datensatz_19610101_20221219"
+# "https://dataset.api.hub.zamg.ac.at/v1/grid/historical/inca-v1-1h-1km?parameters=T2M&parameters=RR&parameters=GL&parameters=RH2M&start=2015-01-01T00%3A00%3A00.000Z&end=2015-01-01T23%3A00%3A00.000Z&bbox=46%2C13%2C48%2C16.7&output_format=netcdf&filename=INCA+analysis+-+large+domain+Datensatz_20150101T0000_20150101T2300"
 
 
+# DEFAULT PARAMETERS
 def_url = "https://dataset.api.hub.zamg.ac.at"
 def_version = "v1"
 def_type = "timeseries"
 def_mode = "historical"
-def_id = "spartacus-v1-1d-1km?"
-def_parameters = ["RR", "Tn", "Tx"]
+def_id = "inca-v1-1h-1km?"
+def_parameters = ["GL", "RH2M", "T2M", "RR"]
 def_start_date = "1961-01-01"
 def_start_time = "T00:00"
 def_end_date = "2022-12-31"
 def_end_time = "T00:00"
 def_coordinates = [["48.032695", "14.966223"]]
 def_format = "csv"
+def_bbox = ["46","13","48","16.7"]
 
-
-# def get_zamg(dataset, parameters, start, end, coordinates):
 
 
 def req_data(url):
@@ -57,7 +58,9 @@ def build_api_call(
     end_date=def_end_date,
     end_time=def_end_time, 
     coordinates=def_coordinates,
-    format=def_format
+    format=def_format,
+    bbox = def_bbox,
+    cutout = False
     ):
     """ Builds call to zamg api
 
@@ -74,6 +77,8 @@ def build_api_call(
             end_time (string): end time
             coordinates (list list string): list of coordinates as [['lat','lon'],['lat','lon']]
             format (string): format of returned data (csv, geojson, netcdf)
+            bbox (list string): list of coordinates to form box (S, E, N, W)
+            cutout (boolean): If True use bbox values, otherwise use coordinates
         Returns:
             tuple: url containing requested parameters and the id (name of dataset) 
     
@@ -81,15 +86,20 @@ def build_api_call(
     
     url = "/".join([base_url, version, type, mode, id])
     params ="parameters=" + ",".join(parameters)
-    coords = list(map(",".join,coordinates))
-    lat_lon = list(map(lambda old_string: "lat_lon=" + old_string, coords))
-    lat_lons = "&".join(lat_lon)
+    if not cutout:
+        coords = list(map(",".join,coordinates))
+        lat_lon = list(map(lambda old_string: "lat_lon=" + old_string, coords))
+        lat_lons = "&".join(lat_lon)
+    else:
+        box = ",".join(bbox)
+        lat_lons = "bbox=" + box
     format_type = "output_format=" + format
     start = "start=" + start_date + start_time
     end = "end=" + end_date + end_time
     api_call_list = [url, params, start, end, lat_lons, format_type]
     api_call = "&".join(api_call_list)
     return (api_call, id)
+
 
 
 url = "https://dataset.api.hub.zamg.ac.at/v1/timeseries/historical/"
@@ -113,10 +123,18 @@ coordinates = [
     ]
 ]
 
+# WRITE RESPONSE TO DATAFRAME
 def response_to_dataframe(res_content):
     df = pd.read_csv(io.StringIO(res_content.decode('utf-8')), parse_dates=['time'])
     return df
 
+
+# WRITE RESPONSE TO FILE
+def response_to_file(res_content, path, name=''):
+    print(f'Writing file {name}.')
+    open(path,'wb').write(res_content)
+
+# GET DATA AS RESPONSE CONTENT
 def get_data(req_tuple):
     """ Gets content from response object and creates dataframe
 
@@ -132,14 +150,13 @@ def get_data(req_tuple):
     res = req_data(req_tuple[0])
     if res.status_code == 200:
         content = res.content
-        df = response_to_dataframe(content)
         print("Fetched data succesfully.")
-        return df
+        return content
     else:
         print(f'An error occured with status code {res.status_code}.')
         print(res.content)
-        return pd.DataFrame()
-
+        return None
+    
 def df_empty(df):
     if not df.empty:
         print(df)

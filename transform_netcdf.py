@@ -108,6 +108,7 @@ years = '2011_2021/test'
 folder = 'other_vars'
 path = f"data/copernicus_netcdf/{folder}/{netcdf_from_file}.nc"
 path = f"data/copernicus_netcdf/{folder}/"
+path = f"data/zamg_netcdf/all/2015-01-01.nc"
 # path = "data/net_cdf/t2m/2015/INCAL_DAILY_STYRIA_T2M_2015.nc"
 # data = xr.open_dataset(path)
 # data = Dataset(path, 'r')
@@ -125,7 +126,10 @@ partial_func = partial(_preprocess, lon_bnds=lon_bnds, lat_bnds=lat_bnds)
 
 # print(data)
 # OPEN ONE DATASET 
-# data = xr.open_dataset(path)
+data = xr.open_dataset(path)
+print(data)
+df = data.to_dataframe()
+print(df)
 # data = data.where((data['time.year']<2013),drop=True)
 # print(data["time.year"])
 
@@ -195,31 +199,31 @@ partial_func = partial(_preprocess, lon_bnds=lon_bnds, lat_bnds=lat_bnds)
 # df.to_csv(csv_path)
 
 # TO PREBAS
-csv_path = f'data/csv/all_styria_1992-2021.csv'
-df = pd.read_csv(csv_path, parse_dates=['time'])
+# csv_path = f'data/csv/all_styria_1992-2021.csv'
+# df = pd.read_csv(csv_path, parse_dates=['time'])
 
-df.drop(df.columns[[0]], axis=1, inplace=True)
-
-
-df['DOY'] = df['time'].dt.day_of_year
-grouped = df.groupby(["lat", "lon"],as_index=True)
-df['climID'] = grouped.grouper.group_info[0]
+# df.drop(df.columns[[0]], axis=1, inplace=True)
 
 
-df = tr.add_value(df, 'rss', tr.convert_gl_to_rss)
-df = tr.add_value(df, 'PAR', tr.calculate_par)
-df = tr.add_value(df, 'VPD', tr.calculate_vpd_copernicus)
+# df['DOY'] = df['time'].dt.day_of_year
+# grouped = df.groupby(["lat", "lon"],as_index=True)
+# df['climID'] = grouped.grouper.group_info[0]
 
 
-cols = {'tg':'TAir','rr': 'Precip'}
-df = df.rename(columns=cols)
+# df = tr.add_value(df, 'rss', tr.convert_gl_to_rss)
+# df = tr.add_value(df, 'PAR', tr.calculate_par)
+# df = tr.add_value(df, 'VPD', tr.calculate_vpd_copernicus)
 
-df = df[['time','DOY','climID','PAR', 'TAir', 'VPD', 'Precip', 'lat', 'lon']]
 
-print(df.head(5))
+# cols = {'tg':'TAir','rr': 'Precip'}
+# df = df.rename(columns=cols)
 
-csv_path = f'data/csv/prebas_1992-2021.csv'
-df.to_csv(csv_path, index=False)
+# df = df[['time','DOY','climID','PAR', 'TAir', 'VPD', 'Precip', 'lat', 'lon']]
+
+# print(df.head(5))
+
+# csv_path = f'data/csv/prebas_1992-2021.csv'
+# df.to_csv(csv_path, index=False)
 
 
 
