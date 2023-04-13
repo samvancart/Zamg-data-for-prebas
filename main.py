@@ -21,19 +21,6 @@ def main():
     a = '20200101'
     b = '20211231'
 
-
-    dates = pd.date_range(a,b,)
-    dates = dates.format(formatter=lambda x: x.strftime('%Y-%m-%d'))
-
-    for date in dates:
-        start_date = date
-        end_date = date
-        year = date.split("-")[0]
-        req_tuple = gd.build_api_call(type="grid" , format='netcdf', start_date=start_date, end_date=end_date, end_time="T23:00", cutout=True)
-        data = gd.get_data(req_tuple)
-        if not data == None:
-            path = f"data/zamg_netcdf/all/{year}/{start_date}.nc"
-            gd.response_to_file(data, path, f'{start_date}.nc')
         
 
 def get_for_coords(coordinates = [

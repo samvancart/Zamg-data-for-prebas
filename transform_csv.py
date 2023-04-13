@@ -86,8 +86,8 @@ def lat_lon_to_end(df):
     return df
 
 def calculate_vpd(row):
-    tair = row['T2M [degree_Celsius]']
-    rh = row['RH2M [percent]']
+    tair = row['T2M']
+    rh = row['RH2M']
     svp = 610.7 * 10**(7.5*tair/(237.3+tair))
     vpd = svp * (1-(rh/100)) / 1000
     return vpd
@@ -135,8 +135,8 @@ def convert_gl_to_rss(row):
     conversion = 0.0864
     # CLIPICK
     # gl  = row['GL [W m-2]']
-    # COPERNICUS
-    gl  = row['qq']
+    # INCA
+    gl  = row['GL']
     rss = gl*conversion
     return rss 
 
