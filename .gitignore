@@ -12,6 +12,7 @@ coordinates/
 
 #code
 scrape_html.py
+start_work.py
 
 # Editor temporary/working/backup files #
 #########################################

@@ -8,10 +8,12 @@ import io
 import matplotlib.pyplot as plt
 
 import transform_csv as tr
+import transform_netcdf as trn
 import get_data as gd
 import plot_data as pl
 import normalise_data as nd
 from clipick import clipick_forPython3 as cl
+
 from dateutil import rrule
 from datetime import datetime
 
@@ -20,8 +22,6 @@ from datetime import datetime
 def main():
     a = '20200101'
     b = '20211231'
-
-        
 
 def get_for_coords(coordinates = [
         [

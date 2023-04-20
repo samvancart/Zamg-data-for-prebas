@@ -28,63 +28,63 @@ def assign_climIDs(df_cop,row,sites):
     return mask
 
 # DATA PATH
-data_path = 'data/csv'
+# data_path = 'data/csv'
 
-# GET SITES FILE
-# sites_file = 'esa_sites.csv'
-# file = f'{data_path}/{sites_file}'
-# df_sites = pd.read_csv(file)
-# print(df_sites)
+# # GET SITES FILE
+# # sites_file = 'esa_sites.csv'
+# # file = f'{data_path}/{sites_file}'
+# # df_sites = pd.read_csv(file)
+# # print(df_sites)
 
-# GET WEATHER FILE
-weather_file = 'copernicus_tair_styria_2011-2021.csv'
-file = f'{data_path}/{weather_file}'
-df_cop = pd.read_csv(file)
-# print(df_cop)
-
-
-# ASSIGN REFERENCE CLIMATE ID:S
-grouped = df_cop.groupby(["lat", "lon"],as_index=True)
-df_cop['climID'] = grouped.grouper.group_info[0]
-# df_cop['climID'] = df_cop['climID']+1
-# print(df_cop)
+# # GET WEATHER FILE
+# weather_file = 'copernicus_tair_styria_2011-2021.csv'
+# file = f'{data_path}/{weather_file}'
+# df_cop = pd.read_csv(file)
+# # print(df_cop)
 
 
-# MOCK DF
-d = {'lat': [46.76435998,46.79171066],
-      'lon': [15.87205907,15.90352198]}
-df_sites = pd.DataFrame(data=d)
+# # ASSIGN REFERENCE CLIMATE ID:S
+# grouped = df_cop.groupby(["lat", "lon"],as_index=True)
+# df_cop['climID'] = grouped.grouper.group_info[0]
+# # df_cop['climID'] = df_cop['climID']+1
+# # print(df_cop)
 
-# LENGTH OF UNIQUE CLIMATE ID:S IN REFERENCE
-ids = len(pd.unique(df_cop['climID']))
 
-# CREATE DATAFRAME FOR ID:S
-d = {'lat':[],'lon':[],'climID':[]}
-df_clim = pd.DataFrame(data=d)
-print(df_cop.head(ids))
+# # MOCK DF
+# d = {'lat': [46.76435998,46.79171066],
+#       'lon': [15.87205907,15.90352198]}
+# df_sites = pd.DataFrame(data=d)
 
-# GET CLIMATE IDS FOR SITES
-for i in range(ids):
-    data = assign_climIDs(df_cop,i,df_sites)
-    if not data.empty:
-        df_clim = pd.concat([df_clim,data])
-df_clim['climID'] = df_clim['climID'].astype(int)
+# # LENGTH OF UNIQUE CLIMATE ID:S IN REFERENCE
+# ids = len(pd.unique(df_cop['climID']))
 
-print(df_clim)
+# # CREATE DATAFRAME FOR ID:S
+# d = {'lat':[],'lon':[],'climID':[]}
+# df_clim = pd.DataFrame(data=d)
+# print(df_cop.head(ids))
 
-# GET SITES CSV WITH CLIMIDS
-# sites_file = 'sites_climid.csv'
-# file = f'{data_path}/{sites_file}'
-# df_clim = pd.read_csv(file)
-# df_clim.drop(df_clim.columns[0],axis=1,inplace=True)
+# # GET CLIMATE IDS FOR SITES
+# for i in range(ids):
+#     data = assign_climIDs(df_cop,i,df_sites)
+#     if not data.empty:
+#         df_clim = pd.concat([df_clim,data])
+# df_clim['climID'] = df_clim['climID'].astype(int)
+
 # print(df_clim)
-# id = 0
-# climID = df_cop[df_cop.climID == id].iloc[0]
-# print(climID)
 
-# WRITE TO CSV
-# df_cop.to_csv(f"{data_path}/copernicus_tair_styria_2011-2021_climid.csv.csv")
-# df_clim.to_csv(f"{data_path}/sites_climid.csv")
+# # GET SITES CSV WITH CLIMIDS
+# # sites_file = 'sites_climid.csv'
+# # file = f'{data_path}/{sites_file}'
+# # df_clim = pd.read_csv(file)
+# # df_clim.drop(df_clim.columns[0],axis=1,inplace=True)
+# # print(df_clim)
+# # id = 0
+# # climID = df_cop[df_cop.climID == id].iloc[0]
+# # print(climID)
+
+# # WRITE TO CSV
+# # df_cop.to_csv(f"{data_path}/copernicus_tair_styria_2011-2021_climid.csv.csv")
+# # df_clim.to_csv(f"{data_path}/sites_climid.csv")
 
 
 

@@ -136,13 +136,13 @@ def response_to_file(res_content, path, name=''):
 
 # GET DATA AS RESPONSE CONTENT
 def get_data(req_tuple):
-    """ Gets content from response object and creates dataframe
+    """ Gets content from response object
 
         Parameters:
             req_tuple (tuple): A tuple containing the url for the request and the id of the request.
 
         Returns:
-            Dataframe (Pandas DataFrame): Response content as dataframe. Empty dataframe if no content in response. 
+            Response content (String): Response content as string. None if no content in response. 
     
     """
 
